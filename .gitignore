@@ -11,3 +11,21 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+
+# Python / backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.coverage
+htmlcov/
+
+# Python / backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.coverage
+htmlcov/
