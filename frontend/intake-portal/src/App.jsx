@@ -1,461 +1,525 @@
-import { useMemo, useState } from "react";
-import { sampleRequests } from "./data/sampleRequests.js";
+import React, { useEffect, useMemo, useState } from "react";
 
-const initialForm = {
-  businessUnit: "Store Operations",
-  requester: "",
-  useCase: "",
-  retailSystem: "Inventory",
-  dataSensitivity: "Internal",
-  customerData: false,
-  paymentData: false,
-  operationalImpact: "Store-level operations",
-  expectedBusinessValue: "",
-  modelType: "Agentic workflow with retrieval",
-  autonomousActionLevel: "Recommend only",
-  humanApprovalRequired: true,
-  dependencies: "",
-  targetReleaseWindow: "Q3 pilot"
-};
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-const tierDescriptions = {
-  "Tier 1": "Low risk: internal productivity use case with limited data sensitivity and no operational execution.",
-  "Tier 2": "Moderate risk: business workflow support, internal data, limited customer impact, human approval required.",
-  "Tier 3": "High risk: customer data, sensitive decisions, cross-system dependencies, or customer-facing output.",
-  "Tier 4": "Restricted: payment data, autonomous action, regulated impact, or executive approval required."
-};
+const formatJson = (value) => JSON.stringify(value, null, 2);
 
-function scoreRisk(form) {
-  let score = 0;
+const phases = [
+  ["Phase 1", "Governance Intake Portal"],
+  ["Phase 2", "Backend Governance API + Risk Tiering"],
+  ["Phase 3", "Retail APIs + Data Contracts"],
+  ["Phase 4", "Inventory Replenishment Agent"],
+  ["Phase 5", "Policy Gates + Governance Controls"],
+  ["Phase 6", "Tracing, Observability + Cost Controls"],
+  ["Phase 7", "SOPs, Runbooks + Support Handoff"],
+  ["Phase 8", "Docker, Terraform, CI/CD + Deployment Readiness"],
+  ["Phase 9", "Interview Demo Readiness Package"],
+  ["Phase 10", "Frontend AI Governance Command Center"],
+];
 
-  const sensitivityScore = {
-    Public: 0,
-    Internal: 1,
-    Confidential: 2,
-    PII: 3,
-    Payment: 5
-  };
+const supportArtifacts = [
+  "AI Intake SOP",
+  "Risk Tiering Runbook",
+  "Agent Deployment Runbook",
+  "Rollback Runbook",
+  "Incident Escalation Runbook",
+  "Prompt Versioning SOP",
+  "Model Promotion SOP",
+  "Support Handoff Checklist",
+  "Post-Implementation Review Template",
+];
 
-  const autonomyScore = {
-    "Summarize only": 0,
-    "Recommend only": 1,
-    "Draft response": 2,
-    "Autonomous action": 5
-  };
+const demoQuestions = [
+  "How would you classify AI use cases into risk tiers?",
+  "How would this integrate with POS, inventory, ERP, CRM, and supply-chain systems?",
+  "How do you prevent autonomous AI from mutating retail systems?",
+  "How do you trace and control cost across agentic workflows?",
+  "How would you transition support to IT after deployment?",
+];
 
-  const impactScore = {
-    "Internal productivity": 0,
-    "Back-office operations": 1,
-    "Store-level operations": 2,
-    "Customer-facing support": 3,
-    "Supply-chain operations": 3,
-    "Enterprise-critical operations": 4
-  };
-
-  score += sensitivityScore[form.dataSensitivity] ?? 1;
-  score += autonomyScore[form.autonomousActionLevel] ?? 1;
-  score += impactScore[form.operationalImpact] ?? 1;
-
-  if (form.customerData) score += 2;
-  if (form.paymentData) score += 5;
-
-  const dependencyCount = form.dependencies
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean).length;
-
-  if (dependencyCount >= 3) score += 2;
-  if (dependencyCount === 2) score += 1;
-
-  const tier =
-    form.paymentData || form.autonomousActionLevel === "Autonomous action"
-      ? "Tier 4"
-      : score >= 8
-        ? "Tier 3"
-        : score >= 4
-          ? "Tier 2"
-          : "Tier 1";
-
-  return {
-    score,
-    tier,
-    humanApprovalRequired:
-      form.humanApprovalRequired || tier === "Tier 3" || tier === "Tier 4"
-  };
+function StatusPill({ tone = "neutral", children }) {
+  return <span className={`pill pill-${tone}`}>{children}</span>;
 }
 
-function nextRequestId(existingRequests) {
-  return `FD-AI-${String(existingRequests.length + 1).padStart(3, "0")}`;
+function Card({ title, eyebrow, children, actions }) {
+  return (
+    <section className="card">
+      <div className="card-header">
+        <div>
+          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+          <h2>{title}</h2>
+        </div>
+        {actions && <div className="card-actions">{actions}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function JsonPanel({ title, data }) {
+  return (
+    <div className="json-panel">
+      <div className="json-title">{title}</div>
+      <pre>{data ? formatJson(data) : "No data loaded yet."}</pre>
+    </div>
+  );
+}
+
+function Metric({ label, value, hint }) {
+  return (
+    <div className="metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {hint && <small>{hint}</small>}
+    </div>
+  );
 }
 
 function App() {
-  const [requests, setRequests] = useState(sampleRequests);
-  const [form, setForm] = useState(initialForm);
+  const [health, setHealth] = useState(null);
+  const [riskTiers, setRiskTiers] = useState([]);
+  const [governanceDashboard, setGovernanceDashboard] = useState(null);
+  const [retailSystems, setRetailSystems] = useState(null);
+  const [inventoryContract, setInventoryContract] = useState(null);
+  const [observability, setObservability] = useState(null);
+  const [policyGates, setPolicyGates] = useState(null);
+  const [agentRun, setAgentRun] = useState(null);
+  const [approvalResult, setApprovalResult] = useState(null);
+  const [actionGateResult, setActionGateResult] = useState(null);
+  const [costGuardrailResult, setCostGuardrailResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [lastError, setLastError] = useState("");
 
-  const riskPreview = useMemo(() => scoreRisk(form), [form]);
+  const apiStatusTone = health?.status === "ok" ? "success" : "warning";
 
-  const stats = useMemo(() => {
-    const total = requests.length;
-    const highRisk = requests.filter((request) =>
-      ["Tier 3", "Tier 4"].includes(request.riskTier)
-    ).length;
-    const restricted = requests.filter((request) => request.riskTier === "Tier 4").length;
-    const approved = requests.filter((request) =>
-      ["Approved for Prototype", "Architecture Review"].includes(request.status)
-    ).length;
+  const highRiskCount = useMemo(() => {
+    if (!governanceDashboard) return "—";
+    return governanceDashboard.high_risk_requests;
+  }, [governanceDashboard]);
 
-    return { total, highRisk, restricted, approved };
-  }, [requests]);
+  async function fetchJson(path, options = {}) {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
 
-  function updateForm(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`${path} failed: ${response.status} ${detail}`);
+    }
+
+    return response.json();
   }
 
-  function submitRequest(event) {
-    event.preventDefault();
+  async function loadDashboard() {
+    setLoading(true);
+    setLastError("");
 
-    const evaluatedRisk = scoreRisk(form);
+    try {
+      const [
+        healthData,
+        riskTierData,
+        governanceData,
+        retailData,
+        contractData,
+        observabilityData,
+        policyData,
+      ] = await Promise.all([
+        fetchJson("/health"),
+        fetchJson("/v1/risk/tiers"),
+        fetchJson("/v1/governance/dashboard"),
+        fetchJson("/v1/retail/systems"),
+        fetchJson("/v1/retail/contracts/inventory"),
+        fetchJson("/v1/observability/dashboard"),
+        fetchJson("/v1/policies/gates"),
+      ]);
 
-    const newRequest = {
-      id: nextRequestId(requests),
-      ...form,
-      humanApprovalRequired: evaluatedRisk.humanApprovalRequired,
-      riskTier: evaluatedRisk.tier,
-      status:
-        evaluatedRisk.tier === "Tier 4"
-          ? "Restricted / Executive Review"
-          : evaluatedRisk.tier === "Tier 3"
-            ? "Governance Review"
-            : "Architecture Review",
-      ownerTeam:
-        evaluatedRisk.tier === "Tier 4"
-          ? "AI Governance Forum"
-          : "AI Platform + Retail Systems"
-    };
-
-    setRequests((current) => [newRequest, ...current]);
-    setForm(initialForm);
+      setHealth(healthData);
+      setRiskTiers(riskTierData);
+      setGovernanceDashboard(governanceData);
+      setRetailSystems(retailData);
+      setInventoryContract(contractData);
+      setObservability(observabilityData);
+      setPolicyGates(policyData);
+    } catch (error) {
+      setLastError(error.message);
+    } finally {
+      setLoading(false);
+    }
   }
+
+  async function runInventoryAgent() {
+    setLoading(true);
+    setLastError("");
+
+    try {
+      const result = await fetchJson("/v1/agents/inventory-replenishment/run", {
+        method: "POST",
+        body: JSON.stringify({
+          requested_by: "frontend-command-center",
+          store_ids: ["STORE-1042", "STORE-2210"],
+          business_goal:
+            "Identify low-stock inventory risk and recommend replenishment actions.",
+        }),
+      });
+
+      setAgentRun(result);
+      setApprovalResult(null);
+    } catch (error) {
+      setLastError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function approveAgentWorkflow() {
+    if (!agentRun?.workflow_id) {
+      setLastError("Run the inventory agent first before approval.");
+      return;
+    }
+
+    setLoading(true);
+    setLastError("");
+
+    try {
+      const result = await fetchJson("/v1/agents/inventory-replenishment/approval", {
+        method: "POST",
+        body: JSON.stringify({
+          workflow_id: agentRun.workflow_id,
+          approved_by: "store-manager-1042",
+          decision: "approve",
+          approval_note: "Approved for controlled handoff from command center.",
+        }),
+      });
+
+      setApprovalResult(result);
+    } catch (error) {
+      setLastError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function testActionGate() {
+    setLoading(true);
+    setLastError("");
+
+    try {
+      const result = await fetchJson("/v1/policies/action-gate", {
+        method: "POST",
+        body: JSON.stringify({
+          action_name: "create_purchase_order",
+          retail_system: "Inventory",
+          action_type: "autonomous_execution",
+          risk_tier: "Tier 4",
+          human_approval_status: "approved",
+          mutates_retail_system: true,
+        }),
+      });
+
+      setActionGateResult(result);
+    } catch (error) {
+      setLastError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function testCostGuardrail() {
+    setLoading(true);
+    setLastError("");
+
+    try {
+      const result = await fetchJson("/v1/observability/cost-guardrail", {
+        method: "POST",
+        body: JSON.stringify({
+          workflow_id: "wf-expensive",
+          estimated_tokens: 12000,
+          estimated_cost_usd: 0.12,
+          max_tokens: 5000,
+          max_cost_usd: 0.05,
+          risk_tier: "Tier 2",
+        }),
+      });
+
+      setCostGuardrailResult(result);
+    } catch (error) {
+      setLastError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
   return (
     <main className="app-shell">
       <section className="hero">
         <div>
-          <p className="eyebrow">Family Dollar AI Platform Demo</p>
-          <h1>AI Governance Intake Portal</h1>
+          <p className="eyebrow">Family Dollar Platform Lab</p>
+          <h1>AI Governance Command Center</h1>
           <p className="hero-copy">
-            Capture AI ideas from business teams, map them to retail systems,
-            preview risk tiers, expose dependencies, and prepare each request
-            for architecture review, governance forum triage, and controlled delivery.
+            A full-stack, GCP-ready retail AI governance and agentic workflow
+            platform showing intake, risk-tiering, retail APIs, agent workflows,
+            policy gates, observability, cost controls, deployment readiness,
+            and support handoff.
           </p>
           <div className="hero-actions">
-            <a href="#intake-form">Submit AI Request</a>
-            <a href="#governance-dashboard" className="secondary-action">
-              View Governance Queue
+            <button onClick={loadDashboard} disabled={loading}>
+              {loading ? "Loading..." : "Refresh platform data"}
+            </button>
+            <a href={`${API_BASE}/docs`} target="_blank" rel="noreferrer">
+              Open FastAPI docs
             </a>
           </div>
+          {lastError && <div className="error-banner">{lastError}</div>}
         </div>
 
-        <aside className="hero-panel">
-          <h2>Demo Narrative</h2>
+        <div className="hero-panel">
+          <StatusPill tone={apiStatusTone}>
+            API {health?.status || "checking"}
+          </StatusPill>
+          <h3>Core governance rule</h3>
           <p>
-            This portal proves the operating model behind safe AI delivery:
-            intake, risk tiering, dependency mapping, prioritization, release
-            governance, and human approval before operational execution.
+            AI may recommend, summarize, and draft. AI may not autonomously
+            mutate retail systems, access payment data, bypass human approval,
+            or bypass change control.
           </p>
-        </aside>
-      </section>
-
-      <section id="governance-dashboard" className="stats-grid">
-        <article className="stat-card">
-          <span>Total AI Requests</span>
-          <strong>{stats.total}</strong>
-        </article>
-        <article className="stat-card">
-          <span>High-Risk Requests</span>
-          <strong>{stats.highRisk}</strong>
-        </article>
-        <article className="stat-card">
-          <span>Restricted Review</span>
-          <strong>{stats.restricted}</strong>
-        </article>
-        <article className="stat-card">
-          <span>Active Delivery Candidates</span>
-          <strong>{stats.approved}</strong>
-        </article>
-      </section>
-
-      <section className="content-grid">
-        <form id="intake-form" className="intake-card" onSubmit={submitRequest}>
-          <div className="section-heading">
-            <p className="eyebrow">Governance Intake</p>
-            <h2>New AI Use Case Request</h2>
-          </div>
-
-          <label>
-            Business Unit
-            <select
-              value={form.businessUnit}
-              onChange={(event) => updateForm("businessUnit", event.target.value)}
-            >
-              <option>Store Operations</option>
-              <option>Customer Support</option>
-              <option>Finance</option>
-              <option>Marketing</option>
-              <option>Supply Chain</option>
-              <option>IT Support</option>
-              <option>Merchandising</option>
-            </select>
-          </label>
-
-          <label>
-            Requester
-            <input
-              value={form.requester}
-              onChange={(event) => updateForm("requester", event.target.value)}
-              placeholder="Example: Regional Operations Director"
-              required
-            />
-          </label>
-
-          <label>
-            Requested AI Use Case
-            <textarea
-              value={form.useCase}
-              onChange={(event) => updateForm("useCase", event.target.value)}
-              placeholder="Describe the AI capability, business problem, and desired outcome."
-              required
-            />
-          </label>
-
-          <div className="two-column">
-            <label>
-              Retail System Touched
-              <select
-                value={form.retailSystem}
-                onChange={(event) => updateForm("retailSystem", event.target.value)}
-              >
-                <option>POS</option>
-                <option>Inventory</option>
-                <option>ERP</option>
-                <option>CRM</option>
-                <option>Supply Chain</option>
-                <option>Identity</option>
-                <option>ITSM</option>
-              </select>
-            </label>
-
-            <label>
-              Data Sensitivity
-              <select
-                value={form.dataSensitivity}
-                onChange={(event) => updateForm("dataSensitivity", event.target.value)}
-              >
-                <option>Public</option>
-                <option>Internal</option>
-                <option>Confidential</option>
-                <option>PII</option>
-                <option>Payment</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="checkbox-row">
-            <label>
-              <input
-                type="checkbox"
-                checked={form.customerData}
-                onChange={(event) => updateForm("customerData", event.target.checked)}
-              />
-              Customer data involved
-            </label>
-
-            <label>
-              <input
-                type="checkbox"
-                checked={form.paymentData}
-                onChange={(event) => updateForm("paymentData", event.target.checked)}
-              />
-              Payment data involved
-            </label>
-          </div>
-
-          <div className="two-column">
-            <label>
-              Operational Impact
-              <select
-                value={form.operationalImpact}
-                onChange={(event) => updateForm("operationalImpact", event.target.value)}
-              >
-                <option>Internal productivity</option>
-                <option>Back-office operations</option>
-                <option>Store-level operations</option>
-                <option>Customer-facing support</option>
-                <option>Supply-chain operations</option>
-                <option>Enterprise-critical operations</option>
-              </select>
-            </label>
-
-            <label>
-              Model Type
-              <select
-                value={form.modelType}
-                onChange={(event) => updateForm("modelType", event.target.value)}
-              >
-                <option>RAG assistant</option>
-                <option>Agentic workflow with retrieval</option>
-                <option>Document intelligence</option>
-                <option>Forecasting model</option>
-                <option>Generative AI personalization</option>
-                <option>Classification model</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="two-column">
-            <label>
-              Autonomous Action Level
-              <select
-                value={form.autonomousActionLevel}
-                onChange={(event) =>
-                  updateForm("autonomousActionLevel", event.target.value)
-                }
-              >
-                <option>Summarize only</option>
-                <option>Recommend only</option>
-                <option>Draft response</option>
-                <option>Autonomous action</option>
-              </select>
-            </label>
-
-            <label>
-              Target Release Window
-              <select
-                value={form.targetReleaseWindow}
-                onChange={(event) => updateForm("targetReleaseWindow", event.target.value)}
-              >
-                <option>Q3 prototype</option>
-                <option>Q3 pilot</option>
-                <option>Q4 controlled rollout</option>
-                <option>Blocked pending governance</option>
-                <option>Future roadmap candidate</option>
-              </select>
-            </label>
-          </div>
-
-          <label>
-            Expected Business Value
-            <textarea
-              value={form.expectedBusinessValue}
-              onChange={(event) =>
-                updateForm("expectedBusinessValue", event.target.value)
-              }
-              placeholder="Example: reduce stockouts, improve customer support response time, reduce manual finance review."
-              required
-            />
-          </label>
-
-          <label>
-            Dependencies
-            <textarea
-              value={form.dependencies}
-              onChange={(event) => updateForm("dependencies", event.target.value)}
-              placeholder="Example: Inventory API, Supply Chain API, Identity API, legal review"
-            />
-          </label>
-
-          <label className="approval-toggle">
-            <input
-              type="checkbox"
-              checked={form.humanApprovalRequired}
-              onChange={(event) =>
-                updateForm("humanApprovalRequired", event.target.checked)
-              }
-            />
-            Human approval required before execution
-          </label>
-
-          <button type="submit">Submit to Governance Queue</button>
-        </form>
-
-        <aside className="risk-card">
-          <div className="section-heading">
-            <p className="eyebrow">Automated Risk Preview</p>
-            <h2>{riskPreview.tier}</h2>
-          </div>
-
-          <p className="tier-description">{tierDescriptions[riskPreview.tier]}</p>
-
-          <dl className="risk-factors">
-            <div>
-              <dt>Risk score</dt>
-              <dd>{riskPreview.score}</dd>
-            </div>
-            <div>
-              <dt>Human approval</dt>
-              <dd>{riskPreview.humanApprovalRequired ? "Required" : "Optional"}</dd>
-            </div>
-            <div>
-              <dt>Retail system</dt>
-              <dd>{form.retailSystem}</dd>
-            </div>
-            <div>
-              <dt>Autonomy</dt>
-              <dd>{form.autonomousActionLevel}</dd>
-            </div>
-          </dl>
-
-          <div className="policy-note">
-            <strong>Governance rule:</strong> AI may recommend, summarize, or draft.
-            Human or policy approval is required before operational execution,
-            customer-impacting actions, payment-related use cases, or restricted release.
-          </div>
-        </aside>
-      </section>
-
-      <section className="queue-section">
-        <div className="section-heading">
-          <p className="eyebrow">Governance Forum Queue</p>
-          <h2>AI Portfolio Intake</h2>
-        </div>
-
-        <div className="request-grid">
-          {requests.map((request) => (
-            <article key={request.id} className="request-card">
-              <div className="request-header">
-                <span>{request.id}</span>
-                <strong className={`tier-badge ${request.riskTier.replace(" ", "-").toLowerCase()}`}>
-                  {request.riskTier}
-                </strong>
-              </div>
-
-              <h3>{request.useCase}</h3>
-              <p>{request.expectedBusinessValue}</p>
-
-              <div className="request-meta">
-                <span>{request.businessUnit}</span>
-                <span>{request.retailSystem}</span>
-                <span>{request.status}</span>
-              </div>
-
-              <dl>
-                <div>
-                  <dt>Dependencies</dt>
-                  <dd>{request.dependencies || "None listed"}</dd>
-                </div>
-                <div>
-                  <dt>Release window</dt>
-                  <dd>{request.targetReleaseWindow}</dd>
-                </div>
-                <div>
-                  <dt>Owner team</dt>
-                  <dd>{request.ownerTeam}</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
         </div>
       </section>
+
+      <section className="metrics-grid">
+        <Metric
+          label="Portfolio requests"
+          value={governanceDashboard?.total_requests ?? "—"}
+          hint="Seeded governance queue"
+        />
+        <Metric
+          label="High-risk requests"
+          value={highRiskCount}
+          hint="Tier 3 + Tier 4"
+        />
+        <Metric
+          label="Retail systems"
+          value={retailSystems?.count ?? "—"}
+          hint="POS, Inventory, ERP, CRM, Supply Chain, Identity"
+        />
+        <Metric
+          label="Trace events"
+          value={observability?.total_trace_events ?? "—"}
+          hint="Agent workflow observability"
+        />
+        <Metric
+          label="Token estimate"
+          value={observability?.total_token_estimate ?? "—"}
+          hint="Cost-control signal"
+        />
+        <Metric
+          label="Autonomous actions blocked"
+          value={observability?.blocked_autonomous_actions ?? "—"}
+          hint="Guardrail proof"
+        />
+      </section>
+
+      <section className="phase-strip">
+        {phases.map(([phase, label]) => (
+          <div className="phase" key={phase}>
+            <strong>{phase}</strong>
+            <span>{label}</span>
+          </div>
+        ))}
+      </section>
+
+      <div className="dashboard-grid">
+        <Card title="Risk-Tier Dashboard" eyebrow="Governance triage">
+          <div className="tier-list">
+            {riskTiers.map((tier) => (
+              <div className="tier-card" key={tier.tier}>
+                <div className="tier-title">
+                  <strong>{tier.tier}</strong>
+                  <StatusPill
+                    tone={
+                      tier.tier === "Tier 4"
+                        ? "danger"
+                        : tier.tier === "Tier 3"
+                          ? "warning"
+                          : "success"
+                    }
+                  >
+                    {tier.label}
+                  </StatusPill>
+                </div>
+                <p>{tier.description}</p>
+                <small>{tier.required_controls.join(" • ")}</small>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Retail System Contracts" eyebrow="Enterprise integration">
+          <p className="section-copy">
+            AI integrates through governed APIs, not shadow access. Each system
+            has owner teams, allowed operations, forbidden operations, data
+            sensitivity, and usage notes.
+          </p>
+          <div className="system-list">
+            {retailSystems?.systems?.map((system) => (
+              <div className="system-row" key={system.system_id}>
+                <strong>{system.name}</strong>
+                <span>{system.owner_team}</span>
+                <StatusPill
+                  tone={
+                    system.data_sensitivity === "Payment"
+                      ? "danger"
+                      : system.data_sensitivity === "PII"
+                        ? "warning"
+                        : "neutral"
+                  }
+                >
+                  {system.data_sensitivity}
+                </StatusPill>
+              </div>
+            ))}
+          </div>
+          <JsonPanel title="Inventory Contract" data={inventoryContract} />
+        </Card>
+
+        <Card
+          title="Inventory Agent Workflow"
+          eyebrow="Agentic workflow with approval gate"
+          actions={
+            <>
+              <button onClick={runInventoryAgent} disabled={loading}>
+                Run agent
+              </button>
+              <button onClick={approveAgentWorkflow} disabled={loading || !agentRun}>
+                Approve handoff
+              </button>
+            </>
+          }
+        >
+          <p className="section-copy">
+            The agent reads governed inventory, POS, and supply-chain APIs,
+            generates reorder recommendations, records traces, estimates cost,
+            and keeps autonomous execution blocked.
+          </p>
+
+          {agentRun && (
+            <div className="agent-summary">
+              <Metric label="Workflow" value={agentRun.workflow_status} />
+              <Metric label="Approval" value={agentRun.approval_status} />
+              <Metric
+                label="Recommendations"
+                value={agentRun.recommendations?.length ?? 0}
+              />
+              <Metric
+                label="Autonomous execution"
+                value={String(agentRun.autonomous_execution_allowed)}
+              />
+            </div>
+          )}
+
+          <JsonPanel title="Agent Run Result" data={agentRun} />
+          <JsonPanel title="Approval Result" data={approvalResult} />
+        </Card>
+
+        <Card
+          title="Policy Gate Tester"
+          eyebrow="Governance as enforceable control"
+          actions={
+            <button onClick={testActionGate} disabled={loading}>
+              Test autonomous action
+            </button>
+          }
+        >
+          <p className="section-copy">
+            This tester intentionally asks the platform to create a purchase
+            order autonomously. The correct result is <strong>deny</strong>.
+          </p>
+          <div className="system-list compact">
+            {policyGates?.gates?.map((gate) => (
+              <div className="system-row" key={gate.gate_type}>
+                <strong>{gate.name}</strong>
+                <span>{gate.gate_type}</span>
+              </div>
+            ))}
+          </div>
+          <JsonPanel title="Action Gate Result" data={actionGateResult} />
+        </Card>
+
+        <Card
+          title="Observability & Cost Controls"
+          eyebrow="Operate safely at scale"
+          actions={
+            <button onClick={testCostGuardrail} disabled={loading}>
+              Test expensive workflow
+            </button>
+          }
+        >
+          <p className="section-copy">
+            The observability layer shows traces, latency, token estimates, cost
+            estimates, guardrails, and approval status.
+          </p>
+          <div className="agent-summary">
+            <Metric
+              label="Portfolio status"
+              value={observability?.portfolio_status ?? "—"}
+            />
+            <Metric
+              label="Average latency"
+              value={`${observability?.average_latency_ms ?? "—"}ms`}
+            />
+            <Metric
+              label="Cost estimate"
+              value={`$${observability?.total_cost_estimate_usd ?? "—"}`}
+            />
+            <Metric
+              label="Human approval workflows"
+              value={observability?.workflows_requiring_human_approval ?? "—"}
+            />
+          </div>
+
+          <div className="guardrail-grid">
+            {observability?.guardrails?.map((guardrail) => (
+              <div className="guardrail" key={guardrail.name}>
+                <StatusPill tone="success">{guardrail.status}</StatusPill>
+                <strong>{guardrail.name}</strong>
+                <p>{guardrail.current_value}</p>
+              </div>
+            ))}
+          </div>
+
+          <JsonPanel title="Cost Guardrail Result" data={costGuardrailResult} />
+        </Card>
+
+        <Card title="Support Handoff & Interview Readiness" eyebrow="Operate and explain">
+          <p className="section-copy">
+            The platform includes SOPs, runbooks, rollback, incident escalation,
+            prompt/model versioning, support handoff, post-implementation review,
+            and interview-ready demo artifacts.
+          </p>
+
+          <div className="artifact-grid">
+            {supportArtifacts.map((artifact) => (
+              <div className="artifact" key={artifact}>
+                {artifact}
+              </div>
+            ))}
+          </div>
+
+          <h3>Likely interview questions</h3>
+          <ul className="question-list">
+            {demoQuestions.map((question) => (
+              <li key={question}>{question}</li>
+            ))}
+          </ul>
+        </Card>
+      </div>
     </main>
   );
 }
