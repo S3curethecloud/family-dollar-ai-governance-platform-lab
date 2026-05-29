@@ -1,0 +1,27 @@
+api: pos-api
+system: Point of Sale
+owner_team: Store Systems
+data_sensitivity: Payment
+risk_classification: Tier 4 if payment data is requested; Tier 2 for aggregated analytics
+auth:
+  required: true
+  methods:
+    - Service Account
+    - IAM
+logging:
+  required: true
+  fields:
+    - request_id
+    - store_id
+    - caller_service
+    - purpose
+    - timestamp
+allowed_operations:
+  - Read aggregated sales summary
+  - Read product category sales trends
+forbidden_operations:
+  - Read raw payment card data
+  - Execute refunds
+  - Modify transactions
+  - Trigger customer-impacting actions
+ai_usage_notes: AI may use aggregated sales patterns only. Payment data and transaction mutation are forbidden.

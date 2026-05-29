@@ -1,0 +1,29 @@
+api: supply-chain-api
+system: Supply Chain
+owner_team: Supply Chain Systems
+data_sensitivity: Internal
+risk_classification: Tier 2 for advisory workflow; Tier 3 or Tier 4 for operational execution
+auth:
+  required: true
+  methods:
+    - Service Account
+    - IAM
+logging:
+  required: true
+  fields:
+    - request_id
+    - shipment_id
+    - supplier_id
+    - destination_store_id
+    - caller_service
+    - timestamp
+allowed_operations:
+  - Read shipment status
+  - Read supplier ETA
+  - Read impacted SKU list
+forbidden_operations:
+  - Change carrier routing
+  - Create purchase orders
+  - Cancel shipments
+  - Commit supplier actions without approval
+ai_usage_notes: AI may summarize supply-chain risk and recommend next actions. Execution requires policy and human approval.

@@ -1,0 +1,29 @@
+api: identity-api
+system: Identity and Access Management
+owner_team: Identity and Access Management
+data_sensitivity: Confidential
+risk_classification: Tier 3 for access-context use; restricted if token issuance or role mutation is requested
+auth:
+  required: true
+  methods:
+    - IAM
+    - MFA
+    - Privileged Access
+logging:
+  required: true
+  fields:
+    - request_id
+    - subject_id
+    - role
+    - caller_service
+    - timestamp
+allowed_operations:
+  - Read role claims
+  - Read business unit assignment
+  - Read allowed system scopes
+forbidden_operations:
+  - Issue tokens
+  - Modify roles
+  - Bypass MFA
+  - Grant privileged access
+ai_usage_notes: AI may consume role context for workflow routing only. Authorization remains owned by IAM systems.

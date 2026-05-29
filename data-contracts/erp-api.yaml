@@ -1,0 +1,26 @@
+api: erp-api
+system: ERP
+owner_team: Enterprise Applications
+data_sensitivity: Confidential
+risk_classification: Tier 2 or Tier 3 depending on financial impact and approval workflow
+auth:
+  required: true
+  methods:
+    - Service Account
+    - Privileged Access
+logging:
+  required: true
+  fields:
+    - request_id
+    - invoice_id
+    - supplier_id
+    - caller_service
+    - timestamp
+allowed_operations:
+  - Read invoice exception summaries
+  - Read supplier reference data
+forbidden_operations:
+  - Approve payments
+  - Modify invoices
+  - Change supplier banking data
+ai_usage_notes: AI may summarize exceptions and recommend routing. Finance approval remains mandatory.
