@@ -1,0 +1,28 @@
+api: crm-api
+system: CRM
+owner_team: Customer Platforms
+data_sensitivity: PII
+risk_classification: Tier 3 for customer data workflows; Tier 4 if payment data or autonomous action is introduced
+auth:
+  required: true
+  methods:
+    - OAuth
+    - IAM
+logging:
+  required: true
+  fields:
+    - request_id
+    - case_id
+    - redaction_status
+    - caller_service
+    - timestamp
+allowed_operations:
+  - Read redacted customer support context
+  - Read loyalty tier
+  - Read case metadata
+forbidden_operations:
+  - Expose full PII to prompts
+  - Autonomously contact customers
+  - Change loyalty status
+  - Issue credits without approval
+ai_usage_notes: AI may draft support responses using redacted context. Human review is required before customer-facing output.

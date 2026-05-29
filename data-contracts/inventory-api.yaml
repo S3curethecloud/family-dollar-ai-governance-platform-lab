@@ -1,0 +1,28 @@
+api: inventory-api
+system: Inventory
+owner_team: Inventory Platform
+data_sensitivity: Internal
+risk_classification: Tier 2 for recommendation-only workflow; Tier 4 for autonomous ordering
+auth:
+  required: true
+  methods:
+    - Service Account
+    - IAM
+logging:
+  required: true
+  fields:
+    - request_id
+    - store_id
+    - sku
+    - caller_service
+    - workflow_id
+    - timestamp
+allowed_operations:
+  - Read on-hand inventory
+  - Read reorder points
+  - Read demand velocity
+forbidden_operations:
+  - Autonomously place purchase orders
+  - Override store inventory counts
+  - Modify supplier records
+ai_usage_notes: AI may recommend reorder actions. Human approval is required before execution.
