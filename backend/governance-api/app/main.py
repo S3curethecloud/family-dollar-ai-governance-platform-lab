@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers.agent import router as agent_router
 from app.routers.governance import router as governance_router
 from app.routers.intake import router as intake_router
 from app.routers.retail import router as retail_router
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(risk_router, prefix="/v1/risk", tags=["risk"])
 app.include_router(intake_router, prefix="/v1/intake", tags=["intake"])
 app.include_router(governance_router, prefix="/v1/governance", tags=["governance"])
+app.include_router(agent_router, prefix="/v1/agents", tags=["agents"])
 app.include_router(retail_router, prefix="/v1/retail", tags=["retail"])
 
 
