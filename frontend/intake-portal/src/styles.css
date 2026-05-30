@@ -420,15 +420,13 @@ pre {
 }
 
 
-/* Phase A5 — Frontend Command Center UX Hardening Pass */
+/* Phase A17 — Contrast-safe command center UX hardening */
 
-:root {
-  --stc-panel-border: rgba(148, 163, 184, 0.22);
-  --stc-panel-soft: rgba(15, 23, 42, 0.72);
-  --stc-panel-elevated: rgba(15, 23, 42, 0.86);
-  --stc-text-muted: rgba(226, 232, 240, 0.72);
-  --stc-text-soft: rgba(226, 232, 240, 0.88);
-}
+/*
+  This replaces the broad Phase A5 visual override.
+  Keep structural/mobile hardening, but do not globally force dark
+  backgrounds onto every card/panel.
+*/
 
 * {
   box-sizing: border-box;
@@ -450,52 +448,6 @@ body {
 main,
 section {
   max-width: 100%;
-}
-
-.card,
-.panel,
-.metric-card,
-.status-card,
-.risk-card,
-.agent-card,
-.policy-card,
-.system-card,
-.contract-card {
-  border: 1px solid var(--stc-panel-border);
-  border-radius: 18px;
-  background: linear-gradient(180deg, var(--stc-panel-elevated), var(--stc-panel-soft));
-  box-shadow: 0 18px 44px rgba(2, 6, 23, 0.24);
-}
-
-.card,
-.panel {
-  overflow: hidden;
-}
-
-h1,
-h2,
-h3 {
-  letter-spacing: -0.03em;
-}
-
-p,
-li {
-  color: var(--stc-text-soft);
-  line-height: 1.65;
-}
-
-.badge,
-.status,
-.risk,
-.pill,
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
 }
 
 .grid,
@@ -578,18 +530,6 @@ a {
 
   h3 {
     font-size: 1.05rem;
-  }
-
-  .card,
-  .panel,
-  .metric-card,
-  .status-card,
-  .risk-card,
-  .agent-card,
-  .policy-card,
-  .system-card,
-  .contract-card {
-    border-radius: 16px;
   }
 
   .badge,
