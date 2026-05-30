@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 
+const formatLabel = (value) => {
+  if (value === null || value === undefined) return "—";
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 const formatJson = (value) => JSON.stringify(value, null, 2);
@@ -411,8 +418,8 @@ function App() {
 
           {agentRun && (
             <div className="agent-summary">
-              <Metric label="Workflow" value={agentRun.workflow_status} />
-              <Metric label="Approval" value={agentRun.approval_status} />
+              <Metric label="Workflow" value={formatLabel(agentRun.workflow_status)} />
+              <Metric label="Approval" value={formatLabel(agentRun.approval_status)} />
               <Metric
                 label="Recommendations"
                 value={agentRun.recommendations?.length ?? 0}
