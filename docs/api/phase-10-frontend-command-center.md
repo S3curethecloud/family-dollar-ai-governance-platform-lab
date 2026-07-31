@@ -72,3 +72,94 @@ Governance Principle
 The command center visually reinforces the core platform rule:
 
 AI may recommend, summarize, and draft. AI may not autonomously mutate retail systems, access payment data, bypass human approval, or bypass change control.
+---
+# Fix Backend Environment
+
+Run this from Terminal 1:
+
+```bash
+cd ~/family-dollar-ai-governance-platform-lab/backend/governance-api
+
+echo "=== current directory ==="
+pwd
+
+echo "=== existing files ==="
+ls -la
+
+echo "=== check dependency files ==="
+find . -maxdepth 2 -type f \( -name "requirements.txt" -o -name "pyproject.toml" -o -name "poetry.lock" -o -name "Pipfile" \) -print
+Then create the missing backend virtual environment:
+
+bash
+cd ~/family-dollar-ai-governance-platform-lab/backend/governance-api
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+Now install dependencies. Use this first:
+
+bash
+if [ -f requirements.txt ]; then
+  pip install -r requirements.txt
+elif [ -f pyproject.toml ]; then
+  pip install -e .
+else
+  pip install fastapi "uvicorn[standard]" pydantic python-dotenv
+fi
+Verify FastAPI is available:
+
+bash
+python - <<'PY'
+import fastapi
+import uvicorn
+
+print("fastapi OK:", fastapi.__version__)
+print("uvicorn OK")
+PY
+Start backend again:
+
+bash
+cd ~/family-dollar-ai-governance-platform-lab/backend/governance-api
+source .venv/bin/activate
+
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+Test From Another Terminal
+bash
+curl http://localhost:8001/health
+Expected:
+
+json
+{"status":"ok","service":"family-dollar-ai-governance-api","phase":"2"}
+Update Your Runbook Correction
+Replace this backend block:
+
+bash
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+with this safer version:
+
+bash
+cd ~/family-dollar-ai-governance-platform-lab/backend/governance-api
+
+if [ ! -d .venv ]; then
+  python3 -m venv .venv
+fi
+
+source .venv/bin/activate
+python -m pip install --upgrade pip
+
+if [ -f requirements.txt ]; then
+  pip install -r requirements.txt
+elif [ -f pyproject.toml ]; then
+  pip install -e .
+else
+  pip install fastapi "uvicorn[standard]" pydantic python-dotenv
+fi
+
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+Important Rule
+One important rule going forward: for this project, always activate the backend venv from:
+
+text
+~/family-dollar-ai-governance-platform-lab/backend/governance-api/.venv
