@@ -73,6 +73,8 @@ The command center visually reinforces the core platform rule:
 
 AI may recommend, summarize, and draft. AI may not autonomously mutate retail systems, access payment data, bypass human approval, or bypass change control.
 ---
+---
+---
 # Fix Backend Environment
 
 Run this from Terminal 1:
